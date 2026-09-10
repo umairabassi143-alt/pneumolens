@@ -7,6 +7,11 @@ explainability, deployed as a role-based Flask web application.
 - Grad-CAM++ explainability with quantitative validation
 - Role-based access (Patient/Doctor/Admin)
 - NHS-guidance-based patient safety information
+- ## Dataset
+This project uses the Kermany et al. (2018) paediatric chest X-ray dataset,
+accessed via a Roboflow-hosted redistribution (version 4, by Mohamed Traore).
+Available at:
+https://universe.roboflow.com/mohamed-traore-2ekkp/chest-x-rays-qjmia/dataset/4
 ## Model Weights
 Model weights (best.pt) are not included in this repository due to size.
 Download from: [yahan apna Google Drive link daalo]
