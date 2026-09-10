@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Admin Dashboard</h1>
+    <p class="sub">System-wide overview and activity.</p>
+    <div class="stats-row">
+        <div class="stat-tile"><div class="stat-value">{{ total_users }}</div><div class="stat-label">Patients</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ total_doctors }}</div><div class="stat-label">Doctors</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ total_admins }}</div><div class="stat-label">Admins</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ total_analyses }}</div><div class="stat-label">Total Analyses</div></div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-primary">Manage Users</a>
+        <a href="{{ url_for('admin_create_user') }}" class="btn btn-secondary">+ Create Doctor/Admin Account</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recently Registered Accounts</h2>
+    {% if recent_users %}
+    <table>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th></tr>
+        {% for u in recent_users %}
+        <tr>
+            <td>{{ u.name }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="tag" style="background: rgba(5,150,105,0.1); color: var(--blue);">{{ u.role }}</span></td>
+            <td>{{ u.account_created_at.strftime('%d %b %Y') }}</td>
+            <td>{{ "Active" if u.is_active_account else "Deactivated" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty-state">No accounts yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

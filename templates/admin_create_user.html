@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Create Account — PneumoLens{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 440px; margin: 0 auto;">
+    <h1>Create Doctor / Admin Account</h1>
+    <p class="sub">Only administrators can create Doctor or Admin accounts.</p>
+
+    <form method="POST" action="{{ url_for('admin_create_user') }}">
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" value="{{ name or '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" value="{{ email or '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Temporary Password (min. 8 characters)</label>
+            <input type="password" name="password" required minlength="8">
+        </div>
+        <div class="form-group">
+            <label>Role</label>
+            <select name="role">
+                <option value="doctor" {{ "selected" if role == "doctor" }}>Doctor</option>
+                <option value="admin" {{ "selected" if role == "admin" }}>Admin</option>
+                <option value="patient" {{ "selected" if role == "patient" }}>Patient</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+    </form>
+</div>
+{% endblock %}

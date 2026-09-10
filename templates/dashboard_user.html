@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Welcome back, {{ current_user.name }}</h1>
+    <p class="sub">Here's a summary of your account and recent analyses.</p>
+    <div class="stats-row">
+        <div class="stat-tile"><div class="stat-value">{{ total_count }}</div><div class="stat-label">X-Rays Analysed</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ current_user.account_created_at.strftime('%d %b %Y') }}</div><div class="stat-label">Member Since</div></div>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">+ New Analysis</a>
+</div>
+
+<div class="card">
+    <h2>Recent Analyses</h2>
+    {% if recent_analyses %}
+    <table>
+        <tr><th>Date</th><th>Result</th><th>Confidence</th><th></th></tr>
+        {% for a in recent_analyses %}
+        <tr>
+            <td>{{ a.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            <td><span class="tag {{ a.prediction }}">{{ a.prediction }}</span></td>
+            <td>{{ "%.1f"|format(a.confidence * 100) }}%</td>
+            <td><a href="{{ url_for('view_analysis', analysis_id=a.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">View</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div style="margin-top: 14px;"><a href="{{ url_for('history') }}" style="color: var(--blue); font-size: 13px; font-weight: 600; text-decoration: none;">View all history →</a></div>
+    {% else %}
+    <div class="empty-state">No analyses yet. Upload your first chest X-ray to get started.</div>
+    {% endif %}
+</div>
+{% endblock %}

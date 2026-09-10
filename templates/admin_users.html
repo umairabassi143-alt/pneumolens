@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Manage Users — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Manage Users</h1>
+    <p class="sub">{{ users|length }} account{{ 's' if users|length != 1 else '' }} total</p>
+
+    <form method="GET" action="{{ url_for('admin_users') }}" style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <input type="text" name="q" value="{{ search }}" placeholder="Search by name or email..." style="flex: 1; padding: 10px 13px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-fill-strong);">
+        <button type="submit" class="btn btn-secondary">Search</button>
+    </form>
+
+    <a href="{{ url_for('admin_create_user') }}" class="btn btn-primary" style="margin-bottom: 16px;">+ Create Doctor/Admin Account</a>
+
+    <table>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Last Login</th><th>Status</th><th></th></tr>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.name }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="tag" style="background: rgba(5,150,105,0.1); color: var(--blue);">{{ u.role }}</span></td>
+            <td>{{ u.account_created_at.strftime('%d %b %Y') }}</td>
+            <td>{{ u.last_login.strftime('%d %b %Y, %H:%M') if u.last_login else '—' }}</td>
+            <td>{{ "Active" if u.is_active_account else "Deactivated" }}</td>
+            <td>
+                {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('admin_toggle_user', user_id=u.id) }}" style="display: inline;">
+                    <button type="submit" class="btn {{ 'btn-danger' if u.is_active_account else 'btn-secondary' }}" style="padding: 6px 12px; font-size: 11px;">
+                        {{ "Deactivate" if u.is_active_account else "Activate" }}
+                    </button>
+                </form>
+                {% else %}
+                <span style="font-size: 11px; color: var(--text-muted);">(you)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

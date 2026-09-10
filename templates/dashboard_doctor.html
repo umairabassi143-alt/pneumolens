@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Doctor Dashboard — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Doctor Dashboard</h1>
+    <p class="sub">Welcome, Dr. {{ current_user.name }}</p>
+    <div class="stats-row">
+        <div class="stat-tile"><div class="stat-value">{{ patients|length }}</div><div class="stat-label">Patients</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ total_analyses }}</div><div class="stat-label">Total Analyses (All Patients)</div></div>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">+ New Analysis</a>
+</div>
+
+<div class="card">
+    <h2>Patients</h2>
+    {% if patients %}
+    <table>
+        <tr><th>Name</th><th>Email</th><th>Joined</th><th></th></tr>
+        {% for p in patients %}
+        <tr>
+            <td>{{ p.name }}</td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.account_created_at.strftime('%d %b %Y') }}</td>
+            <td><a href="{{ url_for('doctor_view_patient', patient_id=p.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">View History</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty-state">No patients registered yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

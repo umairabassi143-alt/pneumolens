@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Result — Pneumonia Detection</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cline x1='19' y1='19' x2='15' y2='15'/%3E%3Cpath d='M8 10.5c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-1: #eef4fb;
+        --bg-2: #f4f0fb;
+        --blue: #059669;
+        --teal: #10b981;
+        --coral: #f43f5e;
+        --amber: #d97706;
+        --success: #16a34a;
+        --coral-soft: rgba(244, 63, 94, 0.08);
+        --success-soft: rgba(22, 163, 74, 0.08);
+        --amber-soft: rgba(217, 119, 6, 0.08);
+        --glass-fill: rgba(255, 255, 255, 0.6);
+        --glass-fill-strong: rgba(255, 255, 255, 0.78);
+        --glass-border: rgba(255, 255, 255, 0.9);
+        --text-primary: #101828;
+        --text-muted: #64748b;
+        --shadow-card: 0 10px 40px rgba(30, 41, 59, 0.1);
+    }
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0; min-height: 100vh; font-family: 'Inter', sans-serif;
+        color: var(--text-primary);
+        background:
+            radial-gradient(circle at 10% 10%, rgba(5, 150, 105, 0.10), transparent 42%),
+            radial-gradient(circle at 90% 20%, rgba(16, 185, 129, 0.10), transparent 45%),
+            linear-gradient(160deg, var(--bg-1), var(--bg-2));
+        display: flex; align-items: center; justify-content: center;
+        padding: 18px 20px;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--blue), var(--teal));
+        z-index: 3;
+    }
+
+    body.dark-theme {
+        --bg-1: #0b0f1a; --bg-2: #10101c;
+        --glass-fill: rgba(255, 255, 255, 0.06);
+        --glass-fill-strong: rgba(255, 255, 255, 0.09);
+        --glass-border: rgba(255, 255, 255, 0.14);
+        --text-primary: #f1f5f9; --text-muted: #94a3b8;
+        --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .card {
+        width: 100%; max-width: 620px;
+        background: var(--glass-fill); border: 1px solid var(--glass-border); border-radius: 24px;
+        backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+        box-shadow: var(--shadow-card);
+        padding: 26px 30px; text-align: center; animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+
+    .warning-banner {
+        display: flex; align-items: center; gap: 10px;
+        background: var(--amber-soft); border: 1px solid rgba(217, 119, 6, 0.25);
+        border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
+        text-align: left; font-size: 11.5px; line-height: 1.4; color: #92400e;
+    }
+    body.dark-theme .warning-banner { color: #fbbf24; }
+    .warning-banner svg { flex-shrink: 0; color: var(--amber); }
+
+    .verdict { border-radius: 18px; padding: 16px 18px; margin-bottom: 16px; border: 1px solid; }
+    .verdict.pneumonia { background: var(--coral-soft); border-color: rgba(244, 63, 94, 0.22); }
+    .verdict.normal { background: var(--success-soft); border-color: rgba(22, 163, 74, 0.22); }
+    .verdict.other { background: var(--amber-soft); border-color: rgba(217, 119, 6, 0.22); }
+
+    .prediction {
+        font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; letter-spacing: -0.01em;
+        margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .prediction svg { flex-shrink: 0; }
+    .prediction.pneumonia { color: var(--coral); }
+    .prediction.normal { color: var(--success); }
+    .prediction.other { color: var(--amber); }
+
+    .confidence-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
+
+    .gauge {
+        --pct: 0; --gauge-color: var(--blue);
+        width: 62px; height: 62px; border-radius: 50%;
+        background: conic-gradient(var(--gauge-color) calc(var(--pct) * 1%), rgba(0,0,0,0.08) 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px));
+        flex-shrink: 0; position: relative;
+    }
+    body.dark-theme .gauge { background: conic-gradient(var(--gauge-color) calc(var(--pct) * 1%), rgba(255,255,255,0.1) 0); }
+    .verdict.pneumonia .gauge { --gauge-color: var(--coral); }
+    .verdict.normal .gauge { --gauge-color: var(--success); }
+    .verdict.other .gauge { --gauge-color: var(--amber); }
+
+    .gauge-center {
+        position: absolute; inset: 7px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--text-primary);
+    }
+
+    .confidence-text { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.03em; }
+    .confidence-text .confidence-big {
+        display: block; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;
+    }
+
+    .compare-wrap { margin-bottom: 6px; }
+
+    .view-tabs {
+        display: flex;
+        gap: 6px;
+        background: var(--glass-fill-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 12px;
+    }
+    .view-tab {
+        flex: 1;
+        text-align: center;
+        padding: 8px 6px;
+        border-radius: 9px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+        user-select: none;
+    }
+    .view-tab.active {
+        background: linear-gradient(135deg, var(--blue), var(--teal));
+        color: #fff;
+    }
+
+    .view-stage {
+        position: relative;
+        width: 100%;
+        max-height: 40vh;
+        aspect-ratio: 1 / 1;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+        background: #0a0a0a;
+    }
+    .view-pane {
+        position: absolute; inset: 0;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        pointer-events: none;
+    }
+    .view-pane.active { opacity: 1; pointer-events: auto; }
+    .view-pane img {
+        width: 100%; height: 100%; object-fit: contain; display: block;
+    }
+    .patient-xray-image {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 55vh;
+        object-fit: contain;
+        border-radius: 16px;
+        border: 1px solid var(--glass-border);
+        background: #0a0a0a;
+    }
+    .view-pane.split { display: flex; gap: 1px; background: var(--glass-border); }
+    .view-pane.split .split-half { flex: 1; overflow: hidden; position: relative; background: #0a0a0a; }
+    .view-pane.split img { position: absolute; inset: 0; }
+    .view-pane.split .split-tag {
+        position: absolute; top: 6px; left: 6px;
+        background: rgba(0,0,0,0.55); color: #fff;
+        font-family: 'JetBrains Mono', monospace; font-size: 8.5px;
+        padding: 3px 6px; border-radius: 5px; letter-spacing: 0.04em; z-index: 2;
+    }
+
+    .legend { margin-top: 12px; text-align: left; }
+
+    .precautions {
+        margin-bottom: 16px;
+        text-align: left;
+        background: var(--glass-fill-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 16px 18px;
+    }
+    .precautions-title {
+        display: flex; align-items: center; gap: 8px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700; font-size: 16px;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+    }
+    .precautions-title svg { color: var(--coral); flex-shrink: 0; }
+    .precautions-list {
+        list-style: none; margin: 0 0 12px; padding: 0;
+    }
+    .precautions-list li {
+        display: flex; align-items: flex-start; gap: 8px;
+        font-size: 11.5px; line-height: 1.5; color: var(--text-muted);
+        margin-bottom: 6px;
+    }
+    .precautions-list li:last-child { margin-bottom: 0; }
+    .precautions-list svg { flex-shrink: 0; margin-top: 1px; color: var(--success); }
+
+    .nhs-tier {
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        border: 1px solid;
+    }
+    .nhs-tier-title {
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14.5px;
+        margin-bottom: 8px;
+    }
+    .nhs-tier-list {
+        margin: 0 0 8px; padding-left: 20px; font-size: 13.5px; line-height: 1.7; color: var(--text-primary);
+    }
+    .nhs-tier-note { font-size: 13.5px; line-height: 1.6; color: var(--text-primary); margin: 5px 0 0; }
+    .nhs-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+    .nhs-links a {
+        font-size: 12.5px; font-weight: 700; text-decoration: underline;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .nhs-phone { font-size: 12.5px; color: var(--text-primary); font-weight: 600; }
+
+    .nhs-emergency { background: var(--coral-soft); border-color: rgba(244, 63, 94, 0.25); }
+    .nhs-emergency .nhs-tier-title { color: var(--coral); }
+    .nhs-emergency .nhs-tier-list { color: var(--text-primary); }
+
+    .nhs-urgent { background: var(--amber-soft); border-color: rgba(217, 119, 6, 0.25); }
+    .nhs-urgent .nhs-tier-title { color: var(--amber); }
+    .nhs-urgent .nhs-links a { color: var(--amber); }
+
+    .nhs-routine { background: var(--success-soft); border-color: rgba(22, 163, 74, 0.25); }
+    .nhs-routine .nhs-tier-title { color: var(--success); }
+    .nhs-routine .nhs-links a { color: var(--success); }
+
+    .precautions-disclaimer {
+        font-size: 11.5px; line-height: 1.6; color: var(--text-muted);
+        font-style: italic; border-top: 1px solid var(--glass-border);
+        padding-top: 10px; margin: 0;
+    }
+    .legend-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .legend-bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #1e3a8a, #0891b2, #22c55e, #eab308, #f97316, #dc2626); }
+    .legend-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn {
+        flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        text-decoration: none; padding: 12px; border-radius: 999px;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13.5px;
+        transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; border: none;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: linear-gradient(135deg, var(--blue), var(--teal)); color: #fff; box-shadow: 0 10px 24px rgba(5, 150, 105, 0.28); }
+    .btn-primary:hover { box-shadow: 0 14px 30px rgba(5, 150, 105, 0.34); }
+    .btn-secondary { background: var(--glass-fill-strong); border: 1px solid var(--glass-border); color: var(--text-primary); }
+    .btn-secondary:hover { background: rgba(5, 150, 105, 0.08); }
+    .btn-icon { flex: 0 0 auto; width: 44px; padding: 12px; }
+
+    .disclaimer { font-size: 10.5px; color: var(--text-muted); margin-top: 16px; line-height: 1.45; border-top: 1px solid var(--glass-border); padding-top: 12px; }
+
+    .toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast {
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(16, 23, 40, 0.92); border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        color: #fff; font-size: 12.5px; padding: 11px 18px; border-radius: 999px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1), toast-out 0.3s ease 2.4s forwards;
+    }
+    .toast svg { flex-shrink: 0; color: #4ade80; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toast-out { to { opacity: 0; transform: translateY(6px); } }
+
+    @media (max-width: 480px) {
+        body { padding: 14px 12px; }
+        .card { padding: 18px 16px; }
+        .actions { flex-wrap: wrap; }
+        .btn-icon { flex: 1 1 100%; width: auto; }
+        .prediction { font-size: 19px; gap: 6px; }
+        .prediction svg { width: 19px; height: 19px; }
+        .view-tab { font-size: 10px; padding: 8px 4px; }
+        .how-steps, .compare-labels span { font-size: 9px; }
+        .gauge { width: 52px; height: 52px; }
+        .gauge-center { font-size: 11px; }
+        .confidence-text .confidence-big { font-size: 13px; }
+        .warning-banner { font-size: 10.5px; padding: 9px 12px; }
+        .legend-title, .legend-labels span { font-size: 9px; }
+        .view-stage { max-height: 34vh; }
+    }
+</style>
+</head>
+<body>
+    <div class="card">
+        <div class="eyebrow">Analysis Complete</div>
+
+        {% if not_xray_like %}
+        <div class="warning-banner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span><strong>Invalid image.</strong> This does not appear to be a chest X-ray. Please upload a valid X-ray image for analysis.</span>
+        </div>
+        {% elif is_uncertain %}
+        <div class="warning-banner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span><strong>Low confidence.</strong> The model is unsure — treat this result as unreliable.</span>
+        </div>
+        {% endif %}
+
+        {% set verdict_class = 'other' if prediction == 'OTHER' else ('pneumonia' if prediction == 'PNEUMONIA' else 'normal') %}
+        {% set display_prediction = 'INVALID IMAGE' if prediction == 'OTHER' else prediction %}
+
+        <div class="verdict {{ verdict_class }}">
+            <div class="prediction {{ verdict_class }}">
+                {% if verdict_class == 'normal' %}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                {% elif verdict_class == 'pneumonia' %}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                {% else %}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                {% endif %}
+                {{ display_prediction }}
+            </div>
+            <div class="confidence-row">
+                <div class="gauge" id="gauge">
+                    <div class="gauge-center" id="gaugeCenter">0%</div>
+                </div>
+                <div class="confidence-text">
+                    <span class="confidence-big" id="confidenceBig">{{ confidence }}</span>
+                    MODEL CONFIDENCE
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.role in ['doctor', 'admin'] %}
+        <div class="compare-wrap">
+            <div class="view-tabs">
+                <div class="view-tab active" data-view="original" onclick="switchView('original')">Original</div>
+                <div class="view-tab" data-view="gradcam" onclick="switchView('gradcam')">Grad-CAM</div>
+                <div class="view-tab" data-view="split" onclick="switchView('split')">Side by Side</div>
+            </div>
+
+            <div class="view-stage">
+                <div class="view-pane active" id="pane-original">
+                    <img src="/{{ original_image }}" alt="Original X-ray">
+                </div>
+                <div class="view-pane" id="pane-gradcam">
+                    <img src="/{{ gradcam_image }}" alt="Grad-CAM overlay">
+                </div>
+                <div class="view-pane split" id="pane-split">
+                    <div class="split-half">
+                        <span class="split-tag">ORIGINAL</span>
+                        <img src="/{{ original_image }}" alt="Original X-ray">
+                    </div>
+                    <div class="split-half">
+                        <span class="split-tag">GRAD-CAM</span>
+                        <img src="/{{ gradcam_image }}" alt="Grad-CAM overlay">
+                    </div>
+                </div>
+            </div>
+
+            <p style="font-size: 10px; color: var(--text-muted); margin: 12px 0 0; text-align: left; line-height: 1.4;">
+                This heatmap shows which regions influenced the AI model's prediction — it is a visualisation of model attention, not a medical diagnosis or a confirmed clinical finding.
+            </p>
+
+            <div class="legend">
+                <div class="legend-title">Model Attention</div>
+                <div class="legend-bar"></div>
+                <div class="legend-labels">
+                    <span>Low focus</span>
+                    <span>High focus</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="compare-wrap">
+            <img src="/{{ original_image }}" alt="Your X-ray" class="patient-xray-image">
+        </div>
+        {% endif %}
+
+        {% if prediction == 'PNEUMONIA' %}
+        <div class="precautions">
+            <div class="precautions-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"></path>
+                </svg>
+                What To Do Next (UK NHS Guidance)
+            </div>
+
+            <p style="font-size: 13.5px; color: var(--text-primary); margin: 0 0 16px; line-height: 1.6;">
+                The AI model has detected findings that may be consistent with pneumonia. <b>This is not a medical diagnosis.</b> The guidance below is based on official NHS advice to help you decide how urgently to seek care — it does not replace assessment by a healthcare professional.
+            </p>
+
+            <div class="nhs-tier nhs-emergency">
+                <div class="nhs-tier-title">🚨 Call 999 or go to A&E now if you have:</div>
+                <ul class="nhs-tier-list">
+                    <li>Severe difficulty breathing, or gasping/choking</li>
+                    <li>Being unable to speak in full sentences because of breathlessness</li>
+                    <li>Blue, pale or blotchy skin, lips or tongue</li>
+                    <li>Sudden confusion or being very difficult to wake</li>
+                </ul>
+                <p class="nhs-tier-note">Do not drive yourself if you are seriously unwell — call 999 or ask someone to take you to A&E.</p>
+            </div>
+
+            <div class="nhs-tier nhs-urgent">
+                <div class="nhs-tier-title">📞 Contact NHS 111 or your GP urgently if you have:</div>
+                <ul class="nhs-tier-list">
+                    <li>Shortness of breath, or chest pain when breathing/coughing</li>
+                    <li>A high or persistent temperature</li>
+                    <li>Symptoms that are getting noticeably worse</li>
+                </ul>
+                <div class="nhs-links">
+                    <a href="https://111.nhs.uk" target="_blank" rel="noopener">NHS 111 Online (England)</a>
+                    <a href="https://111.wales.nhs.uk" target="_blank" rel="noopener">NHS 111 Wales</a>
+                    <a href="https://www.nhsinform.scot/scotlands-service-directory/" target="_blank" rel="noopener">NHS 24 (Scotland)</a>
+                    <span class="nhs-phone">or call <b>111</b></span>
+                </div>
+            </div>
+
+            <div class="nhs-tier nhs-routine">
+                <div class="nhs-tier-title">🩺 If you feel otherwise stable:</div>
+                <p class="nhs-tier-note" style="margin: 0;">Please arrange an appointment with your GP for clinical assessment and confirmation of this result. An AI X-ray result alone does not establish a diagnosis or determine treatment.</p>
+                <div class="nhs-links">
+                    <a href="https://www.nhs.uk/service-search/find-a-gp" target="_blank" rel="noopener">Find a GP surgery (NHS.uk)</a>
+                    <a href="https://www.nhs.uk/service-search" target="_blank" rel="noopener">Find A&E / urgent care near you</a>
+                </div>
+            </div>
+
+            <p class="precautions-disclaimer">This information reflects general NHS guidance and is not a medical diagnosis or treatment plan. It does not replace a qualified healthcare professional. The AI prediction above may be incorrect — always seek professional confirmation. In a medical emergency, always call 999.</p>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <a href="/download_report/{{ report_id }}" class="btn btn-primary" onclick="showToast('Preparing PDF report...')">Download PDF</a>
+            <button onclick="copySummary()" class="btn btn-secondary btn-icon" title="Copy summary" id="copyBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            </button>
+            <button onclick="window.print()" class="btn btn-secondary btn-icon" title="Print">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+            </button>
+            <a href="/" class="btn btn-secondary">Analyse Another</a>
+        </div>
+
+        <p class="disclaimer">Research prototype for an MSc dissertation. Not intended for clinical use — always consult a qualified radiologist or physician.</p>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        if (localStorage.getItem('pneumolens_theme') === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2700);
+        }
+
+        (function animateGauge() {
+            const gauge = document.getElementById('gauge');
+            const gaugeCenter = document.getElementById('gaugeCenter');
+            const target = parseFloat("{{ confidence }}".replace('%', '')) || 0;
+            const duration = 900;
+            const start = performance.now();
+            function step(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = target * eased;
+                gauge.style.setProperty('--pct', current.toFixed(1));
+                gaugeCenter.textContent = Math.round(current) + '%';
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        })();
+
+        function copySummary() {
+            const text = `PneumoLens Result: {{ display_prediction }} (Confidence: {{ confidence }})`;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => { btn.innerHTML = original; }, 1500);
+                showToast('Summary copied to clipboard');
+            });
+        }
+
+        // Tab-switcher for viewing Original / Grad-CAM / Side-by-side
+        function switchView(view) {
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.view === view);
+            });
+            document.querySelectorAll('.view-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            document.getElementById('pane-' + view).classList.add('active');
+        }
+
+        try {
+            const history = JSON.parse(localStorage.getItem('pneumolens_history') || '[]');
+            history.unshift({
+                prediction: "{{ prediction }}",
+                confidence: "{{ confidence }}",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            localStorage.setItem('pneumolens_history', JSON.stringify(history.slice(0, 10)));
+        } catch (e) {}
+    </script>
+</body>
+</html>

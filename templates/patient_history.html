@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.name }} — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{{ patient.name }}'s History</h1>
+    <p class="sub">{{ patient.email }} · Patient since {{ patient.account_created_at.strftime('%d %b %Y') }}</p>
+
+    {% if analyses %}
+    <table>
+        <tr><th>Date</th><th>Result</th><th>Confidence</th><th></th></tr>
+        {% for a in analyses %}
+        <tr>
+            <td>{{ a.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            <td><span class="tag {{ a.prediction }}">{{ a.prediction }}</span></td>
+            <td>{{ "%.1f"|format(a.confidence * 100) }}%</td>
+            <td><a href="{{ url_for('view_analysis', analysis_id=a.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">View</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty-state">This patient has no analyses yet.</div>
+    {% endif %}
+
+    <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary" style="margin-top: 16px;">← Back to Patients</a>
+</div>
+{% endblock %}

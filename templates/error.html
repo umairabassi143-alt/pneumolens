@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} — PneumoLens{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 420px; margin: 60px auto 0; text-align: center;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: var(--coral);">{{ code }}</div>
+    <p style="color: var(--text-muted); font-size: 14px; margin: 10px 0 20px;">{{ message }}</p>
+    <a href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('login') }}" class="btn btn-primary">
+        {{ "Go to Dashboard" if current_user.is_authenticated else "Go to Login" }}
+    </a>
+</div>
+{% endblock %}

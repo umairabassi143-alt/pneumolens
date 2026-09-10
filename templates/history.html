@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}History — PneumoLens{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{% if current_user.role == 'patient' %}My Analysis History{% else %}All Analysis Activity{% endif %}</h1>
+    <p class="sub">{{ analyses|length }} total record{{ 's' if analyses|length != 1 else '' }}</p>
+
+    {% if analyses %}
+    <table>
+        <tr>
+            <th>Date</th>
+            {% if current_user.role != 'patient' %}<th>Patient</th>{% endif %}
+            <th>Result</th>
+            <th>Confidence</th>
+            <th></th>
+        </tr>
+        {% for a in analyses %}
+        <tr>
+            <td>{{ a.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+            {% if current_user.role != 'patient' %}<td>{{ a.user.name }}</td>{% endif %}
+            <td><span class="tag {{ a.prediction }}">{{ a.prediction }}</span></td>
+            <td>{{ "%.1f"|format(a.confidence * 100) }}%</td>
+            <td><a href="{{ url_for('view_analysis', analysis_id=a.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">View</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty-state">No analyses recorded yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

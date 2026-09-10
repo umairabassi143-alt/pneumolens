@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pneumonia Detection Tool</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cline x1='19' y1='19' x2='15' y2='15'/%3E%3Cpath d='M8 10.5c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-1: #eef4fb;
+        --bg-2: #f4f0fb;
+        --blue: #059669;
+        --teal: #10b981;
+        --coral: #f43f5e;
+        --amber: #d97706;
+        --success: #16a34a;
+        --accent-soft: rgba(5, 150, 105, 0.08);
+        --glass-fill: rgba(255, 255, 255, 0.6);
+        --glass-fill-strong: rgba(255, 255, 255, 0.78);
+        --glass-border: rgba(255, 255, 255, 0.9);
+        --text-primary: #101828;
+        --text-muted: #64748b;
+        --shadow-soft: 0 4px 24px rgba(30, 41, 59, 0.06);
+        --shadow-card: 0 10px 40px rgba(30, 41, 59, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', sans-serif;
+        color: var(--text-primary);
+        background:
+            radial-gradient(circle at 10% 10%, rgba(5, 150, 105, 0.10), transparent 42%),
+            radial-gradient(circle at 90% 20%, rgba(16, 185, 129, 0.10), transparent 45%),
+            radial-gradient(circle at 50% 100%, rgba(244, 63, 94, 0.06), transparent 50%),
+            linear-gradient(160deg, var(--bg-1), var(--bg-2));
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--blue), var(--teal));
+        z-index: 3;
+    }
+
+    body.dark-theme {
+        --bg-1: #0b0f1a;
+        --bg-2: #10101c;
+        --accent-soft: rgba(96, 165, 250, 0.14);
+        --glass-fill: rgba(255, 255, 255, 0.06);
+        --glass-fill-strong: rgba(255, 255, 255, 0.09);
+        --glass-border: rgba(255, 255, 255, 0.14);
+        --text-primary: #f1f5f9;
+        --text-muted: #94a3b8;
+        --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.3);
+        --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .page {
+        position: relative;
+        z-index: 2;
+        max-width: 940px;
+        margin: 0 auto;
+        padding: 24px 24px 30px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand .logo {
+        width: 36px; height: 36px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, var(--blue), var(--teal));
+        display: flex; align-items: center; justify-content: center;
+        color: white;
+    }
+    .brand span {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--text-primary);
+    }
+
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .icon-btn {
+        width: 38px; height: 38px;
+        border-radius: 999px;
+        background: var(--glass-fill-strong);
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow-soft);
+        transition: transform 0.18s ease, color 0.18s ease;
+    }
+    .icon-btn:hover { transform: translateY(-2px); color: var(--blue); }
+
+    .model-badge {
+        display: flex; align-items: center; gap: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        background: var(--glass-fill-strong);
+        border: 1px solid var(--glass-border);
+        padding: 9px 16px;
+        border-radius: 999px;
+        box-shadow: var(--shadow-soft);
+    }
+    /* stats-row/stat-tile markup removed from page; unused rules cleaned up */
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .card {
+        background: var(--glass-fill);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        box-shadow: var(--shadow-card);
+        padding: 28px 30px;
+        animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    .eyebrow {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--blue); background: var(--accent-soft);
+        border: 1px solid rgba(5, 150, 105, 0.18);
+        padding: 5px 12px; border-radius: 999px; margin-bottom: 14px;
+    }
+    .eyebrow .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--teal);
+    }
+
+    h1 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700; font-size: 25px; line-height: 1.2;
+        margin: 0 0 8px; letter-spacing: -0.01em;
+        color: var(--text-primary);
+    }
+    p.sub { color: var(--text-muted); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px; }
+
+    .dropzone {
+        position: relative;
+        border: 1.5px solid rgba(5, 150, 105, 0.22);
+        border-radius: 18px;
+        padding: 24px 16px;
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+        background: var(--glass-fill-strong);
+        margin-bottom: 18px;
+        text-align: center;
+        overflow: hidden;
+    }
+    .dropzone:hover { border-color: var(--blue); background: var(--accent-soft); transform: translateY(-1px); }
+    .dropzone.drag-over { border-color: var(--teal); background: rgba(16, 185, 129, 0.08); transform: scale(1.01); }
+    .dropzone.has-file { border-color: var(--teal); border-style: solid; padding: 12px; background: rgba(16, 185, 129, 0.05); }
+    /* file input is now hidden separately via inline display:none - no positioning trick needed */
+
+    .dz-empty .icon {
+        width: 46px; height: 46px; margin: 0 auto 12px; border-radius: 13px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, rgba(5, 150, 105, 0.14), rgba(16, 185, 129, 0.14));
+        color: var(--blue);
+    }
+    .dz-empty .label { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .dz-empty .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+    .dz-preview { display: none; align-items: center; gap: 14px; text-align: left; }
+    .dz-preview img {
+        width: 68px; height: 68px; object-fit: cover; border-radius: 12px;
+        border: 1px solid var(--glass-border);
+    }
+    .dz-preview .info { flex: 1; min-width: 0; }
+    .dz-preview .filename {
+        font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--teal); font-weight: 500;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dz-preview .filesize { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .dropzone.has-file .dz-empty { display: none; }
+    .dropzone.has-file .dz-preview { display: flex; }
+
+    button.submit-btn {
+        width: 100%;
+        background: linear-gradient(135deg, var(--blue), var(--teal));
+        color: #ffffff; border: none; padding: 15px; border-radius: 999px;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(5, 150, 105, 0.28);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+    button.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(5, 150, 105, 0.34); }
+    button.submit-btn:active { transform: translateY(0); }
+    button.submit-btn:disabled:hover { transform: none; }
+
+    .dots span { animation: blink 1.2s infinite; opacity: 0; }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+    .error {
+        color: var(--coral); font-size: 13px;
+        background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.22);
+        border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+    }
+
+    .side-card { padding: 22px 24px; }
+    .side-title {
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13.5px;
+        margin: 0 0 16px; color: var(--text-primary);
+    }
+
+    /* Horizontal "How it works" section, shown above the upload card */
+    .how-it-works {
+        margin-bottom: 14px;
+        padding: 18px 20px !important;
+    }
+    .how-it-works .side-title { margin-bottom: 3px; font-size: 12.5px; }
+    .how-it-works .how-sub { font-size: 11px; color: var(--text-muted); margin: 0 0 12px; }
+    .how-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .how-step {
+        background: var(--glass-fill-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 13px;
+        padding: 11px 10px;
+        position: relative;
+    }
+    .how-step .how-icon {
+        width: 26px; height: 26px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(5, 150, 105, 0.16), rgba(16, 185, 129, 0.16));
+        color: var(--blue);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 7px;
+    }
+    .how-step .how-icon svg { width: 14px; height: 14px; }
+    .how-step .how-num {
+        position: absolute; top: 9px; right: 10px;
+        font-family: 'JetBrains Mono', monospace; font-size: 9px;
+        color: var(--text-muted); opacity: 0.6;
+    }
+    .how-step .how-title {
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11.5px;
+        color: var(--text-primary); margin-bottom: 3px;
+    }
+    .how-step .how-text {
+        font-size: 10px; line-height: 1.4; color: var(--text-muted);
+    }
+    .how-arrow {
+        display: none;
+    }
+    @media (min-width: 761px) {
+        .how-steps { align-items: stretch; }
+    }
+    @media (max-width: 760px) {
+        .how-steps { grid-template-columns: 1fr; }
+    }
+
+    .step { display: flex; gap: 12px; margin-bottom: 16px; }
+    .step:last-child { margin-bottom: 0; }
+    .step .num {
+        flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+        background: var(--accent-soft); border: 1px solid rgba(5, 150, 105, 0.2);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--blue); font-weight: 600;
+    }
+    .step .text { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); padding-top: 2px; }
+    .step .text b { color: var(--text-primary); font-weight: 600; }
+
+    .history-list { margin-top: 2px; }
+    .history-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+    .history-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0; border-top: 1px solid var(--glass-border);
+        font-size: 12px;
+    }
+    .history-item:first-child { border-top: none; }
+    .history-item .tag { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; }
+    .history-item .tag.PNEUMONIA { color: var(--coral); }
+    .history-item .tag.NORMAL { color: var(--success); }
+    .history-item .tag.OTHER { color: var(--amber); }
+    .history-item .meta { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+
+    .disclaimer {
+        font-size: 10.5px; color: var(--text-muted); margin-top: 16px; line-height: 1.45;
+        border-top: 1px solid var(--glass-border); padding-top: 12px; text-align: center;
+    }
+
+    .accordion { border-top: 1px solid var(--glass-border); margin-top: 4px; padding-top: 12px; }
+    .accordion-header {
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+    }
+    .accordion-header .chevron { transition: transform 0.25s ease; color: var(--text-muted); }
+    .accordion.open .accordion-header .chevron { transform: rotate(180deg); }
+    .accordion-body {
+        max-height: 0; overflow: hidden;
+        transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+        opacity: 0; font-size: 11.5px; line-height: 1.55; color: var(--text-muted);
+    }
+    .accordion.open .accordion-body { max-height: 320px; opacity: 1; margin-top: 10px; }
+    .accordion-body p { margin: 0 0 8px; }
+    .accordion-body p:last-child { margin-bottom: 0; }
+    .accordion-body b { color: var(--text-primary); font-weight: 600; }
+
+    .toast-container {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(16, 23, 40, 0.92); border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        color: #fff; font-size: 12.5px; padding: 11px 18px; border-radius: 999px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1), toast-out 0.3s ease 2.4s forwards;
+    }
+    .toast svg { flex-shrink: 0; color: #4ade80; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toast-out { to { opacity: 0; transform: translateY(6px); } }
+
+    @media (max-width: 760px) {
+        .grid { grid-template-columns: 1fr; }
+        .nav { flex-direction: column; align-items: flex-start; gap: 12px; }
+    }
+
+    @media (max-width: 480px) {
+        .page { padding: 16px 14px 24px; }
+        h1 { font-size: 20px; }
+        p.sub { font-size: 13px; }
+        .card { padding: 18px 16px; }
+        .nav-actions { width: 100%; justify-content: space-between; }
+        .brand span { font-size: 15px; }
+        .dz-preview img { width: 50px; height: 50px; }
+        .dz-empty .label { font-size: 12.5px; }
+        .how-steps { grid-template-columns: 1fr; }
+        .how-step { padding: 12px 14px; }
+        .side-card { padding: 18px 20px; }
+        .accordion-body p { font-size: 11px; }
+        .eyebrow { font-size: 10px; padding: 4px 10px; }
+        button.submit-btn { font-size: 14px; padding: 14px; }
+    }
+</style>
+</head>
+<body>
+    <div class="page">
+        <div class="nav">
+            <div class="brand">
+                <div class="logo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                        <line x1="19" y1="19" x2="15" y2="15"></line>
+                        <path d="M8 10.5c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5"></path>
+                    </svg>
+                </div>
+                <span>PneumoLens</span>
+            </div>
+            <div class="nav-actions">
+                <button class="icon-btn" id="themeToggle" title="Toggle theme">
+                    <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="helpBtn" title="Help" onclick="openHelp()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="card how-it-works">
+            <div class="side-title">How it works</div>
+            <p class="how-sub">Three steps from upload to explained result.</p>
+            <div class="how-steps">
+                <div class="how-step">
+                    <span class="how-num">01</span>
+                    <div class="how-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div class="how-title">Upload</div>
+                    <div class="how-text">Upload a chest X-ray. Any non-X-ray image is automatically flagged as invalid.</div>
+                </div>
+                <div class="how-step">
+                    <span class="how-num">02</span>
+                    <div class="how-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4z"></path>
+                            <path d="M6 10v2a6 6 0 0 0 12 0v-2"></path>
+                            <line x1="12" y1="18" x2="12" y2="22"></line>
+                        </svg>
+                    </div>
+                    <div class="how-title">Classify</div>
+                    <div class="how-text">YOLO26n predicts Normal, Pneumonia, or Invalid, with a confidence score.</div>
+                </div>
+                <div class="how-step">
+                    <span class="how-num">03</span>
+                    <div class="how-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="how-title">Explain</div>
+                    <div class="how-text">Grad-CAM highlights the model's focus, and a PDF report is ready to download.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="eyebrow"><span class="dot"></span>AI Diagnostic Support</div>
+                <h1>Pneumonia Detection</h1>
+                <p class="sub">Upload a chest X-ray to receive a model prediction with a Grad-CAM explainability overlay.</p>
+
+                {% if error %}
+                    <div class="error">{{ error }}</div>
+                {% endif %}
+
+                <form action="/predict" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <input type="file" name="file" id="fileInput" accept="image/*" style="display:none;">
+                    <div class="dropzone" id="dropzone" onclick="fileInput.click()">
+                        <div class="dz-empty">
+                            <div class="icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <div class="label">Drag & drop, or click to select</div>
+                            <div class="hint">JPG or PNG chest X-ray</div>
+                        </div>
+                        <div class="dz-preview">
+                            <img id="previewImg" src="" alt="Preview">
+                            <div class="info">
+                                <div class="filename" id="dzFilename"></div>
+                                <div class="filesize" id="dzFilesize"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn">Analyse X-Ray</button>
+                </form>
+
+                <div class="accordion" id="aboutAccordion">
+                    <div class="accordion-header" onclick="document.getElementById('aboutAccordion').classList.toggle('open')">
+                        <span>About this model</span>
+                        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="accordion-body">
+                        <p><b>Dataset:</b> Kermany et al. (2018) paediatric chest X-ray dataset, preprocessed with CLAHE contrast enhancement and a custom stratified 80/10/10 split.</p>
+                        <p><b>Architecture:</b> YOLO26 classification — nano, small, and medium variants were empirically compared, with nano selected for its accuracy-to-efficiency trade-off.</p>
+                        <p><b>Explainability:</b> Grad-CAM (EigenCAM) highlights the image regions driving each prediction.</p>
+                        <p><b>Out-of-distribution safeguard:</b> A third "invalid" class, trained on non-X-ray images, flags uploads that aren't chest X-rays.</p>
+                    </div>
+                </div>
+
+                <p class="disclaimer">Research prototype for an MSc dissertation. Not intended for clinical use — always consult a qualified radiologist or physician.</p>
+            </div>
+
+            <div>
+                <div class="card side-card">
+                    <div class="side-title">Recent analyses</div>
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">No analyses yet this session.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const dzFilename = document.getElementById('dzFilename');
+        const dzFilesize = document.getElementById('dzFilesize');
+        const previewImg = document.getElementById('previewImg');
+        const form = document.getElementById('uploadForm');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2700);
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+            dropzone.classList.add('has-file');
+            dzFilename.textContent = file.name;
+            dzFilesize.textContent = formatSize(file.size);
+            const reader = new FileReader();
+            reader.onload = (e) => { previewImg.src = e.target.result; };
+            reader.readAsDataURL(file);
+            showToast('Image ready for analysis');
+        }
+
+        fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+        ['dragenter', 'dragover'].forEach(evt =>
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); })
+        );
+        ['dragleave', 'drop'].forEach(evt =>
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('drag-over'); })
+        );
+        dropzone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            if (file) { fileInput.files = e.dataTransfer.files; handleFile(file); }
+        });
+
+        form.addEventListener('submit', (e) => {
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--coral)';
+                showToast('Please select an X-ray image first');
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.75';
+            submitBtn.style.cursor = 'wait';
+            submitBtn.innerHTML = 'Analysing<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+        });
+
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const sunPath = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+        const moonPath = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+
+        function applyTheme(dark) {
+            document.body.classList.toggle('dark-theme', dark);
+            themeIcon.innerHTML = dark ? moonPath : sunPath;
+        }
+
+        applyTheme(localStorage.getItem('pneumolens_theme') === 'dark');
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains('dark-theme');
+            applyTheme(isDark);
+            localStorage.setItem('pneumolens_theme', isDark ? 'dark' : 'light');
+            showToast(isDark ? 'Dark mode enabled' : 'Light mode enabled');
+        });
+
+        function openHelp() {
+            const accordion = document.getElementById('aboutAccordion');
+            accordion.classList.add('open');
+            accordion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('pneumolens_history') || '[]');
+            if (history.length === 0) return;
+            list.innerHTML = history.slice(0, 5).map(item => `
+                <div class="history-item">
+                    <span class="tag ${item.prediction}">${item.prediction === 'OTHER' ? 'INVALID' : item.prediction}</span>
+                    <span class="meta">${item.confidence} · ${item.time}</span>
+                </div>
+            `).join('');
+        }
+        renderHistory();
+    </script>
+</body>
+</html>

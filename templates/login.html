@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Login — PneumoLens{% endblock %}
+{% block content %}
+<div style="max-width: 400px; margin: 40px auto 0;">
+    <div class="card" style="text-align: center;">
+        <div style="width: 44px; height: 44px; border-radius: 13px; background: linear-gradient(135deg, var(--blue), var(--teal)); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="19" y1="19" x2="15" y2="15"></line></svg>
+        </div>
+        <h1>Welcome back</h1>
+        <p class="sub">Log in to PneumoLens to analyse X-rays and view your history.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ email or '' }}" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="remember" id="remember" style="width: auto;">
+                <label for="remember" style="margin: 0;">Remember me</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Log In</button>
+        </form>
+
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 16px;">
+            Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--blue); font-weight: 600; text-decoration: none;">Register here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
