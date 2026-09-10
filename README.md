@@ -14,7 +14,7 @@ Available at:
 https://universe.roboflow.com/mohamed-traore-2ekkp/chest-x-rays-qjmia/dataset/4
 ## Model Weights
 Model weights (best.pt) are not included in this repository due to size.
-Download from: [yahan apna Google Drive link daalo]
+Download from: [https://drive.google.com/file/d/1wPgupfxbDlZh_sPFWoOeczuBz7F6e_Zo/view?usp=drive_link]
 ## Setup
 1. `pip install -r requirements.txt`
 2. Place `best.pt` in `model/` folder
